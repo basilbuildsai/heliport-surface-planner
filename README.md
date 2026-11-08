@@ -2,9 +2,9 @@
 
 Draw a heliport's protected areas on a map in a few minutes, using the FAA's current heliport design standard. Export the result to Google Earth or GIS.
 
-![The planner showing an example heliport in Winston-Salem, NC, with two approach surfaces](docs/images/02-plan-view.jpg)
+![The planner at the Ocracoke Island helipad, NC, with approach surfaces to the northeast and southwest](docs/images/02-plan-view.jpg)
 
-The examples in this guide use a site in Winston-Salem, North Carolina, 1.6 miles west of Smith Reynolds Airport, with two one-way approach paths and a Bell 407 as the design helicopter. The sample exports are in [`docs/examples`](docs/examples).
+The examples in this guide use the helipad at Ocracoke Island Airport (W95) on the Outer Banks of North Carolina, listed in NASR as H1, a 100 ft concrete pad. The design has two one-way approach paths, from the northeast and the southwest along the runway, and a Bell 407 as the design helicopter. The sample exports are in [`docs/examples`](docs/examples).
 
 The planner follows FAA Advisory Circular 150/5390-2D, *Heliport Design*, dated January 5, 2023. You give it a location, the heliport type, a helicopter and the directions helicopters will arrive from. It works out the size of the landing pad and its safety area, and draws the 8:1 approach surfaces that must stay clear of obstacles.
 
@@ -105,7 +105,7 @@ Under **Nearby aviation** in the sidebar, two switches add FAA data around the p
 - **Class B, C and D airspace** draws controlled airspace the way a sectional chart does: Class B solid blue, Class C solid magenta, Class D dashed blue. Hover an area for its floor and ceiling. If the pad sits inside or under one, Notes says so and what ATC contact flights there need.
 - **Airports and heliports** shows every open landing facility within about 50 miles: airports, heliports, seaplane bases, gliderports, ultralight parks and balloonports. Use the buttons under the switch to pick types. The three nearest are listed by name and distance.
 
-The example pad sits inside the Smith Reynolds Class D surface area, so Notes flags it. In 3D View each airspace area is a block from its floor to its ceiling.
+In 3D View each airspace area is a block from its floor to its ceiling.
 
 Both layers come from the FAA's NASR 28-day subscription and are built into the planner, so they work offline. The cycle date shows under each switch. The FAA updates NASR every 28 days, so check the current sectional chart before relying on it.
 
@@ -113,7 +113,7 @@ Both layers come from the FAA's NASR 28-day subscription and are built into the 
 
 The **Part 77 surfaces** switch draws the imaginary surfaces of 14 CFR 77.19 for every public-use airport within 20 miles: the primary surface along each runway, the approach surfaces off each end, the 7:1 transitional surfaces, the horizontal surface 150 ft above the airport, and the 20:1 conical surface beyond it. An object that rises through any of them is an obstruction to air navigation under 14 CFR 77.17.
 
-The FAA does not publish these surfaces as map data, but it does publish everything needed to build them. Each runway end in the FAA's NASR records carries its Part 77 category (utility or larger, visual, nonprecision or precision), along with its position and elevation. The planner applies the 77.19 dimensions to those records. Notes reports the lowest surface over the pad: at the example site, that is the Smith Reynolds horizontal surface at 1,119 ft MSL, 139 ft above the ground.
+The FAA does not publish these surfaces as map data, but it does publish everything needed to build them. Each runway end in the FAA's NASR records carries its Part 77 category (utility or larger, visual, nonprecision or precision), along with its position and elevation. The planner applies the 77.19 dimensions to those records. Notes reports the lowest surface over the pad: at the Ocracoke pad, that is the W95 transitional surface beside the runway 24 approach, at 28 ft MSL, 24 ft above the ground.
 
 Two simplifications: runway ends with no category in NASR are drawn as utility visual (the smallest case), and the transitional surfaces stop at the horizontal surface, leaving out the extra 5,000 ft beside precision approaches. The surfaces are included in the KML and GeoJSON exports while the switch is on. For a real project, the FAA's obstruction evaluation (Form 7460-1) and the airport's Airport Layout Plan govern.
 

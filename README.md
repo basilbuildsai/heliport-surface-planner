@@ -12,7 +12,7 @@ The planner follows FAA Advisory Circular 150/5390-2D, *Heliport Design*, dated 
 
 It runs in a web browser. There is nothing to install and no account to create.
 
-Use it at your own risk, and check all of its work against the AC and with a qualified engineer before relying on it. See [Important](#important).
+Every size, surface and marking comes from a specific paragraph, table or figure of AC 150/5390-2D, and the planner shows that source next to the result. The Part 77, airspace and wind layers name their own sources. Check the results against the source and have a qualified engineer review any design before relying on it. See [Important](#important).
 
 ## Open the planner
 
@@ -222,7 +222,7 @@ Not drawn yet: elongated FATOs with two takeoff positions (Table 2-2), TLOFs out
 
 ## Important
 
-Use this tool at your own risk and check all work. It is provided as is, with no warranty, and its results can be wrong. This is a planning sketch. It is not an FAA airspace determination, a design approval, or a substitute for an engineer's review. FAA Form 7480-1 notice and the FAA's airspace review still apply to any new or changed heliport (1.10).
+The planner is provided as is, with no warranty. Use it at your own risk and check all work. It is a planning sketch, not an FAA airspace determination, a design approval, or a substitute for an engineer's review. FAA Form 7480-1 notice and the FAA's airspace review still apply to any new or changed heliport (1.10).
 
 ## For developers
 

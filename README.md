@@ -44,7 +44,7 @@ Turn on **Prior permission required (PPR)** for a private-use site where pilots 
 
 Then pick the design helicopter from the Preset list, or type two numbers from the manufacturer:
 
-- **Controlling dimension (D):** the width of the smallest circle that fits around the whole helicopter, seen from above, rotors turning.
+- **Controlling dimension (D):** the greater of the helicopter's overall length (rotor tip to the rear-most point) and its overall width across the rotors (1.8.3).
 - **Max takeoff weight:** in pounds. It goes in the size and weight box on the pad.
 
 The presets come from Appendix C, Table C-1 of the AC.
@@ -53,9 +53,9 @@ The presets come from Appendix C, Table C-1 of the AC.
 
 Each blue band is an approach path. Drag the numbered white handle at its end to point it where helicopters will fly in, or type the course in degrees from true north. The magnetic course shows beside it, from the World Magnetic Model 2025. Every surface is 8:1, as 2.12.2 requires. Turn on **Reciprocal** if helicopters can use the same line in both directions. Use **Add Path** for another direction.
 
-The AC recommends two approach/departure paths where practicable and, without wind data, at least 135° between the preferred path and another (1.9.1, 2.12.1). These are recommendations, so a layout that misses them gets an orange warning, not a failure. A PPR heliport may have one path.
+The AC recommends two approach/departure paths where practicable and at least 135° between the preferred path and each other path, unless wind or site conditions support less (1.9.1, 2.12.1). The planner compares each path with Path 1, the preferred path. These are recommendations, so a layout that misses them gets an orange warning, not a failure. A PPR heliport may have one path.
 
-To bend a path around buildings or terrain, set **Curve** to Left or Right (as seen from the pad looking out). Then set the straight leg (at least 1,000 ft), the radius (at least 886 ft) and the turn. The AC allows one curve per path (2.12.3).
+To bend a path around buildings or terrain, set **Curve** to Left or Right (as seen from the pad looking out). Then set the straight leg, the radius and the turn. The radius must be at least 886 ft and the straight leg plus the radius at least 1,886 ft (notes to Figures 2-16 and 2-18). A straight leg under 1,000 ft gets a warning, because 2.12.3.2 describes a 1,000 ft straight section before the curve. The AC allows one curve per path (2.12.3).
 
 ### Check the wind
 
@@ -141,11 +141,9 @@ Two switches under **Pad** change the safety area, as Table 2-4 sets out for Gen
 
 ## Lateral extensions for hospital and PPR heliports
 
-At Hospital and PPR heliports the AC offers lateral extensions of the 8:1 approach surface (2.12.2, Figure 2-17). Each side gets a strip that grows from nothing at the FATO to 100 ft wide at 2,000 ft out (Area B), then stays 100 ft wide to 4,000 ft (Area A). An obstacle may rise into Area A or Area B, but not both, if it is marked or lighted and the FAA finds it is not a hazard. Turn on **Lateral extensions** under **Pad** to draw them in light blue.
+At Hospital and PPR heliports the AC offers lateral extensions of the 8:1 approach surface (2.12.2, Figure 2-17). For the first 2,000 ft, each side gets a strip that grows from nothing at the FATO to 100 ft wide at 2,000 ft out. Area A is the left strip and Area B the right, looking out from the pad. An obstacle may rise into Area A or Area B, but not both, if it is marked or lighted and the FAA finds it is not a hazard. Turn on **Lateral extensions** under **Pad** to draw them in light blue.
 
 ![Lateral extensions beside the approach surfaces at a hospital heliport](docs/images/08-hospital-lateral-extensions.jpg)
-
-The text of 2.12.2 and the figure leave some room for reading. The planner takes Area B as the tapering inner 2,000 ft and Area A as the constant-width outer 2,000 ft, from the labels in Figures 2-17 and 2-18.
 
 ## Open your export in Google Earth or GIS
 
@@ -183,12 +181,12 @@ Coordinates are WGS 84 longitude and latitude (EPSG:4326). Heights are meters ab
 | Orange dashed line | Safety area around the FATO | Transport: 0.42 D, at least 30 ft. Others: 0.28 D or 0.5 D, with a 10 to 30 ft minimum, by marking scenario | Table 2-1, Table 2-4 |
 | Red | Heliport protection zone | The first 280 ft under each approach surface (400 ft for Transport) | 2.13, Figure 2-20 |
 | Blue | Approach and departure surface | Starts at the FATO edge, rises at 8:1 and widens to 500 ft at 4,000 ft out, 500 ft above the heliport | 2.12.2, Figure 2-15 |
-| Light blue, dashed | Lateral extensions (Hospital and PPR, optional) | 0 to 100 ft wide over the first 2,000 ft, then 100 ft to 4,000 ft, each side | 2.12.2, Figure 2-17 |
+| Light blue, dashed | Lateral extensions (Hospital and PPR, optional) | 0 to 100 ft wide over the first 2,000 ft, each side (Area A left, Area B right) | 2.12.2, Figure 2-17 |
 | Green | Transitional surfaces | Rise at 2:1 from the sides of the approach surface and the FATO, out to 250 ft from the centerline | 2.12.2 |
 | Yellow ring | Touchdown/positioning circle | Inner diameter 0.5 D, 18 in wide | 4.4.2 |
 | White, outlined | H, hospital cross and size/weight box | H 10 ft by 6 ft 8 in; cross 30 ft; box 5 ft, or 10 ft on a TLOF of 60 ft or more | 4.3, 4.4.3, Figures 4-1 to 4-3 |
 
-Sites above 1,000 ft elevation get a longer FATO, read from Figure 2-11 of the AC to within about 5 ft. The AC's worked example, 80 ft at 3,200 ft, lands on the curve. For elevated heliports, 2.8.5 lets helicopter performance be considered instead, and Notes says so.
+Sites above 1,000 ft elevation get a longer FATO, read from Figure 2-11 of the AC to within about 5 ft. The AC's worked example, 80 ft at 3,200 ft, lands on the curve. The extra length is added only at ground-level heliports. For elevated heliports, 2.8.5 lets helicopter performance be considered instead, and a PPR operator may decline it (2.8.1), so there Notes gives the Figure 2-11 value without adding it. Enter a longer FATO length to include it.
 
 Approach paths can be straight or curved (2.12.3, Figure 2-16). Courses show in true and magnetic.
 
@@ -211,7 +209,7 @@ Not drawn yet: elongated FATOs with two takeoff positions (Table 2-2), TLOFs out
 | Term | Meaning |
 |---|---|
 | AC | Advisory Circular, the FAA's guidance document |
-| D | Controlling dimension: the smallest circle around the whole helicopter, rotors turning |
+| D | Controlling dimension: the greater of overall length and overall width |
 | MTOW | Maximum takeoff weight |
 | TLOF | Touchdown and liftoff area |
 | FATO | Final approach and takeoff area |

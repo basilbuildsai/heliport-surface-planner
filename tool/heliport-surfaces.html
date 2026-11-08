@@ -647,12 +647,14 @@ const declText = decl => `${Math.abs(decl).toFixed(1)}° ${decl < 0 ? "W" : "E"}
 // ---------- Curved approach/departure paths, 2.12.3 and Figure 2-16 ----------
 // A curved surface runs straight from the FATO edge for `straight` ft, then turns through `turn` degrees on a
 // circle of `radius` ft, then continues straight until the centerline totals 4,000 ft. Left and right are as seen
-// from the pad looking out along the surface. The AC's limits (2.12.3.2): straight >= 1,000 ft, radius >= 886 ft,
-// straight + radius >= 1,886 ft.
+// from the pad looking out along the surface. The notes to Figures 2-16 and 2-18 require radius >= 886 ft and
+// straight + radius >= 1,886 ft ("any combination >= 1,886 ft will work"). 2.12.3.2 also describes a 1,000 ft
+// straight section before the curve, so a shorter straight leg raises a warning, not a failure.
 const CURVE_MIN = { straight: 1000, radius: 886, sum: 1886 };
 function curveSpec(pa) {
   if (!pa || (pa.curve !== "left" && pa.curve !== "right")) return null;
-  const straight = Math.max(0, +pa.straight || CURVE_MIN.straight), radius = Math.max(1, +pa.radius || CURVE_MIN.radius);
+  const num = (x, d) => (x === "" || x == null || !isFinite(+x)) ? d : +x;
+  const straight = Math.max(0, num(pa.straight, CURVE_MIN.straight)), radius = Math.max(1, num(pa.radius, CURVE_MIN.radius));
   const maxTurn = Math.max(0, (4000 - straight) / radius * 180 / Math.PI);
   const turn = Math.min(Math.max(0, isFinite(+pa.turn) ? +pa.turn : 90), maxTurn);
   return { dir: pa.curve, straight, radius, turn, maxTurn, askedTurn: +pa.turn };
@@ -721,18 +723,25 @@ function computeDesign(p) {
   const fatoByD = T ? Math.max(1.66 * D, 100) : 1.5 * D, fatoByGap = tlof + 2 * 0.34 * D;
   const W = Math.max(fatoByD, fatoByGap);
   const fatoRule = fatoByGap > fatoByD + 1e-9 ? "TLOF + 0.34 D each side" : T ? (1.66 * D >= 100 ? "1.66 D" : "100 ft minimum") : "1.5 D";
-  const elevAdd = fatoElevationAddition(heliportElev);
+  // 2.8.5 requires the Figure 2-11 addition at ground-level heliports. Elevated heliports may rely on hover-out-of-
+  // ground-effect performance instead, and a PPR operator may decline it (2.8.1), so it is not added there.
+  const elevAddFig = fatoElevationAddition(heliportElev);
+  const elevAdd = (elevated || ppr) ? 0 : elevAddFig;
   const baseL = Math.max(W, +p.fatoLen || 0);
   const L = baseL + elevAdd;
   if (+p.fatoLen > 0 && +p.fatoLen < W) msgs.push(["warn", `FATO length ${p.fatoLen} ft is below the minimum ${W.toFixed(1)} ft, so the minimum is used.`]);
-  if (elevAdd > 0) msgs.push(["info", `Heliport elevation ${Math.round(heliportElev)} ft MSL adds ${elevAdd.toFixed(0)} ft to FATO length (2.8.5, Figure 2-11).${elevated ? " For an elevated heliport, 2.8.5 lets the helicopters' hover-out-of-ground-effect performance be considered instead of, or with, the extra length." : ""}`]);
+  if (elevAdd > 0) msgs.push(["info", `Heliport elevation ${Math.round(heliportElev)} ft MSL adds ${elevAdd.toFixed(0)} ft to FATO length (2.8.5, Figure 2-11). The extra length is drawn along Path 1; check it for the other takeoff directions too.`]);
+  else if (elevAddFig > 0) msgs.push(["info", `At ${Math.round(heliportElev)} ft MSL, Figure 2-11 gives ${elevAddFig.toFixed(0)} ft of extra FATO length. It is not added here: ${elevated ? "at an elevated heliport, 2.8.5 lets the helicopters' hover-out-of-ground-effect performance be considered instead" : "a PPR operator may choose not to provide it (2.8.1)"}. Enter a longer FATO length if you want it.`]);
   if (heliportElev > 6000) msgs.push(["warn", "Figure 2-11 stops at 6,000 ft; the FATO addition above that is extrapolated."]);
 
   // 2.9, Table 2-1 (TRANSPORT) and Table 2-4 (GENERAL AVIATION, HOSPITAL, PPR): safety area
   const sr = safetyAreaRule(type, ppr, tlofMarked, p.hSymbol);
   const sa = Math.max(sr.k * D, sr.min);
   const saRule = `${sr.k} D, at least ${sr.min} ft${sr.scen ? ` (Table 2-4, scenario ${sr.scen})` : ""}`;
-  if (!tlofMarked) msgs.push(["info", "With the TLOF perimeter unmarked, mark the FATO perimeter instead (4.4.1, Table 2-4 scenarios 3 and 4)."]);
+  if (!tlofMarked) {
+    if (!p.fatoLoadBearing) msgs.push(["bad", "With the TLOF perimeter unmarked, the FATO perimeter must be marked (Table 2-4, scenarios 3 and 4) and the FATO must carry the design helicopter's dynamic loads (2.8.2). A FATO that is not load-bearing is not marked (4.6), so mark the TLOF or make the FATO load-bearing."]);
+    else msgs.push(["info", "With the TLOF perimeter unmarked, mark the FATO perimeter instead (4.4.1, Table 2-4 scenarios 3 and 4)."]);
+  }
   if (T && !p.hSymbol) msgs.push(["warn", "TRANSPORT heliports are marked with the standard white H (Figure 4-1)."]);
   if (!p.hSymbol && !T) msgs.push(["info", `Without the standard H, ${ppr ? "a PPR heliport may use a distinctive marking such as a company logo (4.3.1); " : ""}the safety area is ${f0(sa)} ft (Table 2-4).`]);
 
@@ -788,13 +797,14 @@ function computeDesign(p) {
     const circ = p.shape === "circle";
     const bs = tlof >= 60 ? 10 : 5, edge = tlof / 2 - 1.5;
     const [bx, by] = circ ? (HOSP && p.hSymbol ? [tlof * 0.275, -tlof * 0.275] : [10 / 3 + 2 + bs / 2, 0]) : [edge - bs / 2, -(edge - bs / 2)];
-    const wt = Math.round(+p.mtow / 1000);
+    const wt = Math.floor(+p.mtow / 1000), Dbox = Math.floor(D);
+    if (!wt && elevated) msgs.push(["warn", "The diagonal no-weight-limit line is only for ground-level heliports (4.4.3.2). Enter the maximum takeoff weight for an elevated pad."]);
     add("marking", "Size/weight limitation box, weight", ring([[bx - bs / 2, by], [bx + bs / 2, by], [bx + bs / 2, by + bs / 2], [bx - bs / 2, by + bs / 2]]), deckAlt,
       { weight_thousands_lb: wt || "no limit", box_ft: bs });
-    add("marking", "Size/weight limitation box, controlling dimension", ring([[bx - bs / 2, by - bs / 2], [bx + bs / 2, by - bs / 2], [bx + bs / 2, by], [bx - bs / 2, by]]), deckAlt, { controlling_dimension_ft: Math.round(D) });
+    add("marking", "Size/weight limitation box, controlling dimension", ring([[bx - bs / 2, by - bs / 2], [bx + bs / 2, by - bs / 2], [bx + bs / 2, by], [bx - bs / 2, by]]), deckAlt, { controlling_dimension_ft: Dbox });
     if (wt) labels.push({ text: String(wt), xy: at(bx, by + bs / 4), h: bs * 0.32, rot: course });
     else labels.push({ text: "╱", xy: at(bx, by + bs / 4), h: bs * 0.45, rot: course });
-    labels.push({ text: `D${Math.round(D)}`, xy: at(bx, by - bs / 4), h: bs * 0.28, rot: course });
+    labels.push({ text: `D${Dbox}`, xy: at(bx, by - bs / 4), h: bs * 0.28, rot: course });
   }
 
   // Magnetic declination at the site (WMM2025), for magnetic courses alongside true.
@@ -852,19 +862,19 @@ function computeDesign(p) {
     add("hpz", `Heliport protection zone, ${pname}`, [at(0, -w0 / 2, 0), at(0, w0 / 2, 0), at(HPZ, hpzW / 2, 0), at(HPZ, -hpzW / 2, 0), at(0, -w0 / 2, 0)], "ground",
       { path: s.label, length_ft: HPZ, outer_width_ft: +hpzW.toFixed(1) });
 
-    // 2.12.2(4) and Figure 2-17: optional lateral extensions for HOSPITAL and PPR heliports. Each side widens from
-    // nothing at the FATO edge to 100 ft at 2,000 ft out (Area B), then stays 100 ft wide to 4,000 ft (Area A).
-    // They rise at 8:1 with the approach surface. Obstacles may penetrate Area A or Area B, not both.
+    // 2.12.2 and Figure 2-17: optional lateral extensions for HOSPITAL and PPR heliports, for the first 2,000 ft
+    // only. Each side widens from nothing at the FATO edge to 100 ft at 2,000 ft out, rising at 8:1 with the
+    // approach surface. Area A is the left side and Area B the right, looking out from the pad (Figure 2-17 plan view).
+    // Obstacles may penetrate Area A or Area B, not both.
     if (latExt) {
       const ext = t => EXT_W * Math.min(t, EXT_LEN) / EXT_LEN;
-      const stx = [...new Set(st.concat([EXT_LEN]))].sort((a, b) => a - b);
-      [-1, 1].forEach(side => [["B", 0, EXT_LEN], ["A", EXT_LEN, LEN]].forEach(([area, a0, a1]) => {
-        const seg = stx.filter(t => t >= a0 - 0.01 && t <= a1 + 0.01);
+      const seg = [...new Set(st.filter(t => t < EXT_LEN).concat([EXT_LEN]))].sort((a, b) => a - b);
+      [[-1, "A", "left"], [1, "B", "right"]].forEach(([side, area, sideName]) => {
         const inner = seg.map(t => at(t, side * hw(t), t / s.slope)), outer = seg.map(t => at(t, side * (hw(t) + ext(t)), t / s.slope));
         const ring = inner.concat(outer.reverse()); ring.push(ring[0]);
-        add("latext", `Lateral extension, Area ${area}, ${pname}, ${side < 0 ? "left" : "right"}`, ring, "surface",
-          { path: s.label, area, slope: "8:1", from_ft: a0, to_ft: a1, width_at_end_ft: EXT_W, note: "Obstacles may penetrate Area A or Area B, not both, if marked or lighted and not a hazard (Figure 2-17)" });
-      }));
+        add("latext", `Lateral extension, Area ${area} (${sideName}), ${pname}`, ring, "surface",
+          { path: s.label, area, side: sideName, slope: "8:1", length_ft: EXT_LEN, width_at_end_ft: EXT_W, note: "Obstacles may penetrate Area A or Area B, not both, if marked or lighted and not a hazard (2.12.2, Figure 2-17)" });
+      });
     }
 
     if (w0 / 2 < TRANS_OUT) {
@@ -892,33 +902,25 @@ function computeDesign(p) {
   // 2.12.3.2: curved path limits.
   surfaces.filter(s => s.curve).forEach(s => {
     const cv = s.curve, i = s.idx, P = `Path ${s.label}`;
-    if (cv.straight < CURVE_MIN.straight - 0.01) flag(i, "bad", `${P}: the straight leg before the curve is ${Math.round(cv.straight)} ft. The AC calls for at least 1,000 ft (2.12.3.2).`);
-    if (cv.radius < CURVE_MIN.radius - 0.01) flag(i, "bad", `${P}: the curve radius is ${Math.round(cv.radius)} ft. The AC calls for at least 886 ft (2.12.3.2).`);
-    if (cv.straight + cv.radius < CURVE_MIN.sum - 0.01) flag(i, "bad", `${P}: the straight leg plus the radius is ${Math.round(cv.straight + cv.radius).toLocaleString("en-US")} ft. The AC calls for at least 1,886 ft (2.12.3.2).`);
+    if (cv.radius < CURVE_MIN.radius - 0.01) flag(i, "bad", `${P}: the curve radius is ${Math.round(cv.radius)} ft. The AC calls for at least 886 ft (Figures 2-16 and 2-18, note 1).`);
+    if (cv.straight + cv.radius < CURVE_MIN.sum - 0.01) flag(i, "bad", `${P}: the straight leg plus the radius is ${Math.round(cv.straight + cv.radius).toLocaleString("en-US")} ft. The AC calls for at least 1,886 ft (Figures 2-16 and 2-18, note 1).`);
+    else if (cv.straight < CURVE_MIN.straight - 0.01) flag(i, "warn", `${P}: the straight leg before the curve is ${Math.round(cv.straight)} ft. The figure notes accept it because the straight leg plus the radius is at least 1,886 ft, but 2.12.3.2 describes a 1,000 ft straight section before the curve, and a straight leg helps the helicopter accelerate (Figure 2-16, note 3).`);
     if (cv.askedTurn > cv.maxTurn + 0.05) flag(i, "warn", `${P}: a ${Math.round(cv.askedTurn)}° turn doesn't fit in the 4,000 ft surface with this straight leg and radius, so the turn is cut to ${Math.round(cv.maxTurn)}°.`);
     msgs.push(["info", `${P} curves ${cv.dir} ${Math.round(cv.turn)}° after a ${Math.round(cv.straight).toLocaleString("en-US")} ft straight leg, on an ${Math.round(cv.radius).toLocaleString("en-US")} ft radius. Takeoff performance may be lower in a curve (Figure 2-16, note 3).`]);
   });
   // 1.9 and 2.12.1: design for two approach/departure paths to the extent practicable. Without wind data, separate
   // additional paths from the preferred path by at least 135 degrees. A recommendation, so it raises a warning.
-  let bestSep = 0;
-  surfaces.forEach((s, a) => surfaces.forEach((o, b) => { if (b > a) bestSep = Math.max(bestSep, angDiff(s.bearing, o.bearing)); }));
-  const sepOk = bestSep >= 135 - 0.5;
   if (paths.length && surfaces.length < 2) {
     if (ppr) msgs.push(["info", "One approach/departure path. A PPR heliport may have only one, if every pilot using it knows the path and the site's limits (2.12.1)."]);
     else flag(0, "warn", "Only one approach/departure surface. The AC recommends two where practicable (1.9, 2.12.1): make Path 1 reciprocal, or add a second path at least 135° away.");
   }
-  const pairsSaid = new Set();   // report each close pair once, but mark both paths
-  surfaces.forEach(s => {
-    if (s.recip || surfaces.length < 2) return;
+  // Each additional path is compared with the preferred path (Path 1, and its reciprocal if it has one).
+  const pref = surfaces.filter(s => s.idx === 0);
+  surfaces.filter(s => s.idx !== 0).forEach(s => {
     let near = 360, other = null;
-    surfaces.forEach(o => { if (o !== s && angDiff(s.bearing, o.bearing) < near) { near = angDiff(s.bearing, o.bearing); other = o; } });
-    if (near >= 135 - 0.5) return;
-    const key = [s.label, other.label].sort().join("|"), said = pairsSaid.has(key); pairsSaid.add(key);
-    const text = `Paths ${[s.label, other.label].sort().join(" and ")} are ${near.toFixed(0)}° apart.`;
-    if (!sepOk) {
-      const t = `${text} Without a wind analysis, the AC recommends at least 135° between the preferred path and another (1.9.1, 2.12.1).`;
-      if (said) pathFlags[s.idx].push(["warn", t]); else flag(s.idx, "warn", t);
-    } else if (!said) msgs.push(["info", `${text} That is fine for an additional path, because another pair of paths is already 135° or more apart.`]);
+    pref.forEach(o => { const a = angDiff(s.bearing, o.bearing); if (a < near) { near = a; other = o; } });
+    if (!other || near >= 135 - 0.5) return;
+    flag(s.idx, "warn", `Path ${s.label} is ${near.toFixed(0)}° from the preferred path (Path ${other.label}). The AC recommends at least 135° between the preferred path and another, unless a wind analysis or site conditions support less (1.9.1, 2.12.1).`);
   });
   const axisAligned = s => [0, 90, 180, 270].some(k => angDiff(s.bearing, axisBearing + k) < 0.5);
   if (isRect && surfaces.some(s => !axisAligned(s))) msgs.push(["info", "A path is not square to the FATO. Its surface starts where it leaves the FATO and its inner width is the FATO's width seen across that path."]);
@@ -966,7 +968,7 @@ function buildKML(design, site) {
   };
   const failed = design.failed || [];
   const status = failed.length
-    ? `<tr><td><b>Status</b></td><td><b style="color:#d70015">NON-STANDARD.</b> This layout does not meet AC 150/5390-2D:<ul>${failed.map(t => `<li>${esc(t)}</li>`).join("")}</ul></td></tr>`
+    ? `<tr><td><b>Status</b></td><td><b style="color:#d70015">${design.ppr ? "Does not follow AC 150/5390-2D." : "NON-STANDARD."}</b> ${design.ppr ? "The AC's recommendations are not mandatory at PPR heliports (2.2), but this layout departs from them:" : "This layout does not meet AC 150/5390-2D:"}<ul>${failed.map(t => `<li>${esc(t)}</li>`).join("")}</ul></td></tr>`
     : `<tr><td>Status</td><td>Meets the AC 150/5390-2D checks this planner runs</td></tr>`;
   const summary = `<table>
 ${status}
@@ -1076,14 +1078,14 @@ const INFO = {
   elev: ["Ground elevation", `<p>Height of the ground at the pad, in feet above mean sea level. It sets the altitude of the surfaces in Google Earth.</p><p>It fills in when you place the pad, from the USGS in the United States and Open-Meteo elsewhere. You can type a surveyed value instead.</p><p class="src">Sites above 1,000 ft get a longer FATO (2.8.5, Figure 2-11).</p>`],
   htype: ["Heliport type", `<p><b>General</b> aviation heliports serve the public or private users with smaller helicopters. <b>Transport</b> heliports serve scheduled or larger operations and get larger minimums: a TLOF of at least 50 ft, a FATO of at least 100 ft and a protection zone of 400 ft. <b>Hospital</b> heliports serve medical flights, with a TLOF of at least 40 ft and the red H in a white cross.</p><p class="src">AC 150/5390-2D, 1.8, Table 2-1, Table 2-4, 2.13 and Figure 4-3</p>`],
   ppr: ["Prior permission required", `<p>A PPR heliport is private-use; pilots need the owner's permission before landing, and the owner makes sure they know the site's limits.</p><p>PPR sites use the smaller safety-area minimums in Table 2-4, may have a single approach path, may skip the size and weight box, and may add optional lateral extensions to the approach surfaces.</p><p class="src">AC 150/5390-2D, 1.8.34, 2.12.1, 2.12.2 and 4.4.3</p>`],
-  D: ["Controlling dimension (D)", `<p>The diameter of the smallest circle that fits around the whole helicopter, seen from above, with the rotors turning.</p><p>D sets every pad size: the TLOF (0.83 D), the FATO (1.5 D, or 1.66 D at a Transport heliport), the safety area and the touchdown circle.</p><p class="src">AC 150/5390-2D, Table 2-1 and Appendix C</p>`],
+  D: ["Controlling dimension (D)", `<p>The greater of the helicopter's overall length and overall width, measured from rotor tip to the rear-most point and across the rotors (1.8.3, 1.8.31, 1.8.32).</p><p>D sets every pad size: the TLOF (0.83 D), the FATO (1.5 D, or 1.66 D at a Transport heliport), the safety area and the touchdown circle.</p><p class="src">AC 150/5390-2D, Table 2-1 and Appendix C</p>`],
   mtow: ["Maximum takeoff weight", `<p>The heaviest the helicopter can legally take off. It goes in the top half of the size and weight box on the TLOF, in thousands of pounds. Enter 0 for a ground-level pad with no weight limit; the box then shows a diagonal line.</p><p class="src">AC 150/5390-2D, 4.4.3.2 and Figure 4-2</p>`],
   fatoLen: ["FATO length", `<p>Leave it empty for the minimum size. Enter a larger number to stretch the FATO along Path 1. A longer FATO adds room for approaches, takeoffs and emergency landings, and lengthens the transitional surfaces.</p><p class="src">AC 150/5390-2D, 2.7.6 and 2.8.1</p>`],
   deck: ["Deck height", `<p>Height of the landing surface above the surrounding ground. Use 0 for a ground-level pad.</p><p>A pad 30 inches (2.5 ft) or more above the ground counts as elevated, such as a rooftop.</p><p class="src">AC 150/5390-2D, 2.7.7</p>`],
   fatoLB: ["Load-bearing FATO", `<p>Turn this off if only the TLOF can carry the helicopter, which is common on rooftops. On an elevated pad with a non-load-bearing FATO, the TLOF grows to at least 1 D.</p><p>An elevated Transport heliport needs a load-bearing FATO.</p><p class="src">AC 150/5390-2D, 2.7.2.1, 2.7.7.2 and 2.8.6.1</p>`],
   hsym: ["H marking", `<p>The standard <b>H</b> is 10 ft tall and 6 ft 8 in wide, centered in the TLOF and read upright by a pilot flying Path 1. A 1 ft black bar 2 ft below it shows the preferred direction.</p><p>At a Hospital heliport the H is red, inside a 30 ft white cross. The size and weight box sits in the lower-right corner (or right of the H on a circular TLOF): weight in thousands of pounds on top, "D" and the controlling dimension below.</p><p>Without the standard H, Table 2-4 adds width to the safety area. A PPR site may use a logo instead.</p><p class="src">AC 150/5390-2D, 4.3, 4.4.3, Figures 4-1 to 4-3 and Table 2-4</p>`],
   tlofMark: ["TLOF perimeter marking", `<p>A 12 in white line, or retroreflective markers, around the TLOF edge.</p><p>If the TLOF is not marked, mark the FATO edge instead. The safety area then grows from 0.28 D to 0.5 D at General, Hospital and PPR heliports.</p><p class="src">AC 150/5390-2D, 4.4.1 and Table 2-4</p>`],
-  latext: ["Lateral extensions", `<p>An option for Hospital and PPR heliports. Each side of the 8:1 approach surface gets an extra strip that grows from nothing at the FATO to 100 ft wide at 2,000 ft out (Area B), then stays 100 ft wide to 4,000 ft (Area A).</p><p>Obstacles may rise into Area A or Area B, but not both, if they are marked or lighted and the FAA finds they are not a hazard.</p><p class="src">AC 150/5390-2D, 2.12.2 and Figures 2-17 and 2-18. The A and B split is read from Figure 2-17.</p>`],
+  latext: ["Lateral extensions", `<p>An option for Hospital and PPR heliports. For the first 2,000 ft, each side of the 8:1 approach surface gets an extra strip that grows from nothing at the FATO to 100 ft wide at 2,000 ft out. Area A is the left strip and Area B the right, looking out from the pad.</p><p>Obstacles may rise into Area A or Area B, but not both, if they are marked or lighted and the FAA finds they are not a hazard.</p><p class="src">AC 150/5390-2D, 2.12.2 and Figure 2-17</p>`],
   course: ["Course", `<p>The direction the helicopter flies on final approach, in degrees from true north. The magnetic course shows beside it.</p><p>A course of 230° means the helicopter flies southwest toward the pad, so the approach surface lies to the northeast.</p><p>Drag the numbered handle on the 2D map to set it by eye.</p><p class="src">Magnetic courses use the World Magnetic Model 2025 (NOAA), at the pad, for today's date.</p>`],
   curve: ["Curved path", `<p>A curved surface starts straight from the FATO and then turns once. Left and right are as seen from the pad looking out along the surface, which is the way a departing helicopter turns.</p><ul><li>Straight leg: at least 1,000 ft.</li><li>Radius: at least 886 ft.</li><li>Straight leg plus radius: at least 1,886 ft.</li><li>The centerline totals 4,000 ft. Any length left after the turn continues straight.</li></ul><p>Takeoff performance may drop in a curve, so a straight leg first lets the helicopter accelerate. A reciprocal surface on the other side stays straight.</p><p class="src">AC 150/5390-2D, 2.12.3 and Figure 2-16</p>`],
   wind: ["Wind analysis", `<p>The AC asks for the preferred approach and departure paths to line up with the predominant wind, so pilots avoid tailwinds and keep crosswinds small.</p><p><b>Run Wind Analysis</b> downloads ten full years of hourly reports from the chosen ASOS or AWOS station through the Iowa Environmental Mesonet. It takes a minute and is saved in this browser for next time.</p><p>The wind rose shows how often wind blows from each direction, by speed. The numbered lines are your paths, drawn at their approach course: a helicopter on that course lands into wind from that direction.</p><p>Pick the station nearest the pad with similar terrain. An airport a few miles away can see different winds than a rooftop downtown.</p><p class="src">AC 150/5390-2D, 1.9.1 and 2.12.1; method from AC 150/5300-13B, Appendix B</p>`],

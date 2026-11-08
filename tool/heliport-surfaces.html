@@ -479,7 +479,7 @@ select.pop:focus { outline: none; color: var(--blue); }
         <div class="foot">Companion app: <a href="https://basilbuildsai.github.io/vertiport-surface-planner/" target="_blank" rel="noopener">Vertiport Surface Planner</a> (AC 150/5390-4).</div>
       </div>
 
-      <p class="legal">© 2026 Basil Yap. Free for noncommercial use under the <a href="https://polyformproject.org/licenses/noncommercial/1.0.0" target="_blank" rel="noopener">PolyForm Noncommercial License 1.0.0</a>. Commercial use needs a license: <a href="https://docs.google.com/forms/d/e/1FAIpQLSf1xf1FYvdN0Jw-cdIcSiQatTBELTr2MrMmcFuTI27Qir7J-w/viewform" target="_blank" rel="noopener">request one here</a>. A planning sketch, not an FAA airspace determination or design approval.</p>
+      <p class="legal">© 2026 Basil Yap. Free for noncommercial use under the <a href="https://polyformproject.org/licenses/noncommercial/1.0.0" target="_blank" rel="noopener">PolyForm Noncommercial License 1.0.0</a>. Commercial use needs a license: <a href="https://docs.google.com/forms/d/e/1FAIpQLSf1xf1FYvdN0Jw-cdIcSiQatTBELTr2MrMmcFuTI27Qir7J-w/viewform" target="_blank" rel="noopener">request one here</a>. A planning sketch, not an FAA airspace determination or design approval. Use at your own risk and check all work.</p>
     </div>
   </aside>
 </div>
@@ -980,7 +980,7 @@ ${status}
 <tr><td>Heliport elevation</td><td>${ff(design.heliportElev)} ft MSL</td></tr>
 ${design.surfaces.map(s => `<tr><td>Path ${s.label}</td><td>course ${Math.round(s.course)}°T (${Math.round(s.courseMag)}°M), ${s.slope}:1, ${ff(s.endHeight)} ft above heliport at 4,000 ft${s.curve ? `, curving ${s.curve.dir} ${Math.round(s.curve.turn)}° after ${Math.round(s.curve.straight)} ft (radius ${Math.round(s.curve.radius)} ft)` : ""}</td></tr>`).join("")}
 <tr><td>Magnetic declination</td><td>${esc(declText(design.decl))} (WMM2025, ${design.decYear.toFixed(1)})</td></tr>
-</table><p>Generated from AC 150/5390-2D, Heliport Design (1/5/2023). Planning sketch, not a design approval.</p>`;
+</table><p>Generated from AC 150/5390-2D, Heliport Design (1/5/2023). Planning sketch, not a design approval. Use at your own risk and check all work.</p>`;
   const ext = `<ExtendedData><Data name="non_standard"><value>${failed.length ? "true" : "false"}</value></Data>${failed.length ? `<Data name="failed_checks"><value>${esc(failed.join(" | "))}</value></Data>` : ""}<Data name="magnetic_declination_deg"><value>${design.decl.toFixed(2)}</value></Data></ExtendedData>`;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${esc(site.name)}${failed.length ? " (non-standard)" : ""}</name>${failed.length ? `<Snippet maxLines="2">Non-standard: ${esc(failed.length === 1 ? failed[0] : failed.length + " checks failed. Open the site placemark for the list.")}</Snippet>` : ""}

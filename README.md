@@ -2,6 +2,8 @@
 
 Draw a heliport's protected areas on a map in a few minutes, using the FAA's current heliport design standard. Export the result to Google Earth or GIS.
 
+This is a companion app to the [Vertiport Surface Planner](https://basilbuildsai.github.io/vertiport-surface-planner/) ([repo](https://github.com/basilbuildsai/vertiport-surface-planner)), which does the same job for VTOL aircraft under the FAA's draft vertiport standard, AC 150/5390-4. The two tools share the same layout, controls and export formats.
+
 ![The planner at the Ocracoke Island helipad, NC, with approach surfaces to the northeast and southwest](docs/images/02-plan-view.jpg)
 
 The examples in this guide use the helipad at Ocracoke Island Airport (W95) on the Outer Banks of North Carolina, listed in NASR as H1, a 100 ft concrete pad. The design has two one-way approach paths, from the northeast and the southwest along the runway, and a Bell 407 as the design helicopter. The sample exports are in [`docs/examples`](docs/examples).
@@ -9,8 +11,6 @@ The examples in this guide use the helipad at Ocracoke Island Airport (W95) on t
 The planner follows FAA Advisory Circular 150/5390-2D, *Heliport Design*, dated January 5, 2023. You give it a location, the heliport type, a helicopter and the directions helicopters will arrive from. It works out the size of the landing pad and its safety area, and draws the 8:1 approach surfaces that must stay clear of obstacles.
 
 It runs in a web browser. There is nothing to install and no account to create.
-
-A companion tool, the [Vertiport Surface Planner](https://basilbuildsai.github.io/vertiport-surface-planner/), does the same for the FAA's draft vertiport standard, AC 150/5390-4.
 
 ## Open the planner
 
@@ -58,6 +58,10 @@ To bend a path around buildings or terrain, set **Curve** to Left or Right (as s
 ### Check the wind
 
 Under **Wind**, the planner picks the nearest weather station with ten full years of hourly reports. Set the helicopter's crosswind and tailwind limits, then click **Run Wind Analysis**. It downloads the reports from the Iowa Environmental Mesonet archive, which takes about a minute, and draws a wind rose with your paths on it. It then shows the prevailing wind, how often your paths are usable, and the best single path and reciprocal pair. **Use for Path 1** aims Path 1 to match. This supports the AC's advice to align the preferred path with the predominant wind (1.9.1). Results are saved in your browser, so the next run for that station is instant.
+
+![Wind rose for the Ocracoke pad from the Hatteras (HSE) station, 2016 to 2025](docs/images/09-wind-ocracoke.jpg)
+
+At Ocracoke the nearest station is Hatteras (HSE), 21 miles away, with 85,041 hourly reports from 2016 to 2025. The prevailing wind is from 230°T and calm 4.5% of the time. The two runway-aligned paths are usable 95.3% of the time at a 10.5 kt crosswind limit and no tailwind. The best reciprocal pair, courses 200° and 020°T, would reach 95.8%, so lining the pad up with the runway costs half a percentage point.
 
 ### 4. Check the results
 

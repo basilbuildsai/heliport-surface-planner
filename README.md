@@ -81,6 +81,8 @@ Name the site, then click **Google Earth (KML)** or **GIS (GeoJSON)**. The file 
 
 Click **3D View** at the top of the map. The surfaces appear in the air at their real heights over the terrain. Use the buttons on the right to zoom, rotate and tilt, and the bar at the bottom for preset views. On a laptop trackpad, drag to move and pinch to zoom. Click **Light** at the top for a plain gray map that makes the surfaces easier to read.
 
+![3D overview of the Ocracoke pad with the approach and transitional surfaces over satellite imagery](docs/images/05-3d-satellite.jpg)
+
 ### Fly a path
 
 Click **Fly** in the bar at the bottom of the 3D view. A generic single-rotor helicopter, sized from your D and not modeled on any real type, flies the chosen path from 4,000 ft out to a hover over the pad. Choose **Departure** to fly it outbound. **Pilot** shows the view from the cockpit and **Chase** follows from behind. Drag the slider to scrub.
